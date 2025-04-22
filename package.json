@@ -1,0 +1,39 @@
+{
+  "name": "projectapiwithmongodb",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "keygenerate": "node commands/generate-jwt-secret.js",
+    "make:component": "node commands/generate-component.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "fs": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.2.3",
+    "mongoose": "^8.13.2",
+    "mongoose-to-swagger": "^1.5.1",
+    "path": "^0.12.7",
+    "pluralize": "^8.0.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "_moduleAliases": {
+    "@models": "src/models",
+    "@routes": "src/routes",
+    "@middlewares":"src/middlewares"
+  }
+}
