@@ -30,7 +30,7 @@ function createFile(sourcePath, destinationPath) {
         console.error('Error writing destination file:', err);
         return;
       }
-      console.log(`Router file created: ${destinationPath}`);
+      console.log(`file created: ${destinationPath}`);
     });
   });
 }
@@ -48,5 +48,5 @@ createFile(controllersourcePath, controllerdestinationPath);
 
 // for router creation 
 const routesourcePath = path.join(__dirname, 'baseStructure', 'routers', 'baseRouters.js');
-const routedestinationPath = path.join(dirPath, 'src', 'routes', `${routerName}Routers.js`);
+const routedestinationPath = path.join(dirPath, 'src', 'routes', `${routerName}Routes.js`);
 createFile(routesourcePath, routedestinationPath);
