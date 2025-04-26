@@ -1,12 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 const pluralize = require('pluralize');
+require('module-alias/register');
 const readline = require('readline'); // ← ✅ Missing import
 
 // Get the router name passed as an argument
 const routerType = process.argv[2];
 const routerPath = process.argv[3];
 const routerName = process.argv[4];
+const makeRouteType = process.argv[5];
 
 // Validate the router type
 if (!routerType) {
@@ -26,14 +28,28 @@ if (!routerName) {
   process.exit(1);
 }
 
+if(makeRouteType){
+  if(makeRouteType === 's'){
+    console.log('makeRouteType',makeRouteType);
+  }else{
+    console.error('Please provide singluar or plural type route. e.g. "s" - for "user" & "" - for "users"');
+    process.exit(1);
+  }
+}
 
 // Convert to Sentence Case
 const toSentenceCase = (str) => str.charAt(0).toUpperCase() + str.slice(1);
-function createPathKey(routePath) {
+function createPathKey(routePath, typeDirect = '') {
     const segments = routePath.replace(/^\/+/, '').split('/');
-    
+    let base = '';
+
+    if (typeDirect === 's') {
+      base = segments[0];
+    } else {
+      base = pluralize.plural(segments[0]);
+    }
     // Use pluralize to get the plural form of the first segment
-    const base = pluralize.plural(segments[0]); // <-- FIXED
+    // base = pluralize.plural(segments[0]); // <-- FIXED
     
     // Convert params (e.g., :id) to just ":id"
     const extras = segments
@@ -47,48 +63,117 @@ function createPathKey(routePath) {
 // Define the path to paste
 const dirPath = __dirname+'/../';
 const routedestinationPath = path.join(dirPath, 'src', 'routes', `${routerName}Routes.js`);
+function updateBraceDepth(line, currentDepth) {
+  const openCount = (line.match(/{/g) || []).length;
+  const closeCount = (line.match(/}/g) || []).length;
+  console.log('line',line);
+  console.log('openCount',openCount);
+  console.log('closeCount',closeCount);
+  return currentDepth + openCount - closeCount;
+}
+function matchJsonKey(line, key) {
+  const regex = new RegExp(`["']${key}["']\\s*:\\s*{`);
+  return regex.test(line);
+}
+async function findRouteLineNumber(filePath, targetPath, targetMethod) {
+  const rl = readline.createInterface({
+    input: fs.createReadStream(filePath),
+    crlfDelay: Infinity,
+  });
 
-async function findRouteLineNumber(filePath, targetPath, method) {
-    const fileStream = fs.createReadStream(filePath);
-    const rl = readline.createInterface({
-      input: fileStream,
-      crlfDelay: Infinity
-    });
+  let lineNumber = 0;
+  let insideRoutesObject = false;
+  let insideTargetPath = false;
+  let insideTargetPathBraceCount = false;
+  let braceDepth = 0;
+  let targetPathCloseBraceLineNumber = 0;
+  let targetPathMatchLine = null;
   
-    let lineNumber = 0;
-    let insidePath = false;
+  let insideTargetMethod = false;
+  let insideTargetMethodBraceCount = false;
+  let targetMethodCloseBraceLineNumber = 0;
+  let targetMethodMatchLine = null;
+  let depth = 0;
+  let multipleLineComment = false;
   
-    for await (const line of rl) {
-      lineNumber++;
-  
-      // Trim leading/trailing whitespace
-      const trimmedLine = line.trim();
-  
-      // Check for path match (e.g. "/users")
-      if (trimmedLine.startsWith(`"${targetPath}"`)) {
-        insidePath = true;
+  // multiple line comments check
+  for await (const line of rl) {
+    lineNumber++;
+    let trimmed = line.trim();
+    if(trimmed.includes('//')){
+      trimmed = trimmed.split('//')[0];
+    }
+    //check if line has commments
+    if (trimmed.startsWith('//')) {
+      continue;
+    }
+
+    // check if line has multiple line comments
+    if (trimmed.includes('/*')) {
+      multipleLineComment = true;
+    }
+    
+    if(multipleLineComment === false){
+      // console.log(trimmed);
+      // match the line with target path
+      // if (trimmed.startsWith(`${'"'+targetPath+'"'}:`) || trimmed.startsWith(`${"'"+targetPath+'"'}:`)) {
+      if(matchJsonKey(trimmed, targetPath)){
+        insideTargetPath = true;
+        insideTargetPathBraceCount = true;
+        targetPathMatchLine = lineNumber;
       }
-  
-      // Once inside path, check for method (e.g. "post")
-      if (insidePath && trimmedLine.startsWith(`"${method}"`)) {
-        return lineNumber;
+
+      if(insideTargetPath === true && insideTargetPathBraceCount === true){
+        depth = updateBraceDepth(trimmed, depth);
+        console.log(depth);
+        if(depth === 0){
+          insideTargetPathBraceCount = false;
+          targetPathCloseBraceLineNumber = lineNumber;
+        }
+        // console.log(trimmed);
+        // console.log(targetMethod);
+        // check method available in the route
+        // if (trimmed.startsWith(`${'"'+targetMethod+'"'}:`) || trimmed.startsWith(`${"'"+targetMethod+'"'}:`) || trimmed.startsWith(`${'"'+(targetMethod).toLowerCase()+'"'}:`) || trimmed.startsWith(`${"'"+(targetMethod).toUpperCase()+'"'}:`) ) {
+        if(trimmed !== ''){
+          if(matchJsonKey(trimmed, targetMethod)){
+            insideTargetMethod = true;
+            insideTargetMethodBraceCount = true;
+            targetMethodMatchLine = lineNumber;
+          }else {
+            if(depth === 1){
+              targetMethodCloseBraceLineNumber = lineNumber;
+            }
+          }
+        }
       }
     }
-  
-    return -1; // Not found
+    if (trimmed.includes('*/')) {
+      multipleLineComment = false;
+    }
+  }
+
+  rl.close();
+  return { insideRoutesObject, insideTargetPath, targetPathMatchLine,targetPathCloseBraceLineNumber,targetMethodMatchLine,targetMethodCloseBraceLineNumber };
 }
+
+
 // check if file exists
 if (fs.existsSync(routedestinationPath)) {
   // file exists so find the line number of path like "/logins" user input login then added json in under that json 
 
   console.log('File exists. Finding line number...');
   // convert route path login to "/logins" utiline pluraling pluralize
-  const targetPath = createPathKey(routerPath);
+  const targetPath = createPathKey(routerPath, makeRouteType);
+  const targetMethod = routerType.toLowerCase();
+
   // Find the line number of the route
-  console.log(targetPath);
+  console.log("targetPath",targetPath);
+  console.log("targetMethod",targetMethod);
+  console.log("routedestinationPath",routedestinationPath);
   (async () => {
-    const lineNumber = await findRouteLineNumber(routedestinationPath, targetPath, routerType);
-    console.log(lineNumber === -1 ? 'Route or method not found' : `Line number: ${lineNumber}`);
+    const lineNumber = await findRouteLineNumber(routedestinationPath, targetPath, targetMethod);
+    console.log(lineNumber);
+    // console.log(lineNumber === -1 ? 'Route or method not found' : `Line number: ${lineNumber}`);
   })();
 } else {
     console.error(`❌ File not found: ${routedestinationPath}`);

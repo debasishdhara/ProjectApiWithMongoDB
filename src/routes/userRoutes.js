@@ -2,9 +2,12 @@
 const { getUsers, createUser } = require('../controllers/userController');
 const validateUser = require('@middlewares/validateUser');
 const authenticateToken = require('@middlewares/auth');
+
+// /users
+// put
 const userRoutes ={
-    // users for resources route in this file
-    "/users": {
+    // /users for resources route in this file
+    "/users": { // /users route
       "get": {
         "summary": "Get all users",
         "functions": [authenticateToken,getUsers],
@@ -68,13 +71,13 @@ const userRoutes ={
         "tags": ["Users"],
         "requestBody": {
           "required": true,
-          "content": {
+          /*"content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/User"
               }
             }
-          }
+          }*/
         },
         "responses": {
           "201": {
@@ -89,6 +92,7 @@ const userRoutes ={
           }
         }
       }
+      // add new routes here
     }
 }
 

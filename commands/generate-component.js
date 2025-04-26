@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const pluralize = require('pluralize');
 
 // Get the router name passed as an argument
 const routerName = process.argv[2];
@@ -22,7 +23,9 @@ function createFile(sourcePath, destinationPath) {
     }
 
     // Replace all occurrences of "base" with routerName
-    const firstModifiedData = data.replace(/baseM/g, toSentenceCase(routerName));
+    
+    const prevfirstModifiedData = data.replace(/Pbase/g, pluralize.plural(routerName));
+    const firstModifiedData = prevfirstModifiedData.replace(/baseM/g, toSentenceCase(routerName));
     const modifiedData = firstModifiedData.replace(/base/g, routerName);
     // Write content to the new router file
     fs.writeFile(destinationPath, modifiedData, 'utf8', (err) => {

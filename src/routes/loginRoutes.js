@@ -1,6 +1,6 @@
 const { loginUser } = require('../controllers/authController'); // adjust path as needed
-const loginRoutes = {
-    "/logins": {
+const loginRoutes = { // /logins 
+    "/logins": { 
       "post": {
         "functions": [loginUser],
         "summary": "User login",

@@ -1,7 +1,7 @@
 const { baseMethodgetAll,baseMethodCreate,baseMethodEdit,baseMethodUpdate,baseMethodDetete } = require('../controllers/baseController');
 
 const baseRoutes = {
-  "/base": {
+  "/Pbase": {
     "post": {
       "functions": [baseMethodCreate], // controllerMethods
       "summary": "base route summery", // Adjust for relevant route
@@ -95,7 +95,7 @@ const baseRoutes = {
       }
     }
   },
-  "/base/:id": {
+  "/Pbase/:id": {
     "get": {
       "functions": [baseMethodEdit], // controllerMethods
       "summary": "base route summery", // Adjust for relevant route
