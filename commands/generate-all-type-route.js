@@ -3,6 +3,7 @@ const path = require('path');
 const pluralize = require('pluralize');
 require('module-alias/register');
 const readline = require('readline'); // ← ✅ Missing import
+const { createFile } = require('./file-create-and-update');
 
 // Get the router name passed as an argument
 const routerType = process.argv[2];
@@ -28,10 +29,10 @@ if (!routerName) {
   process.exit(1);
 }
 
-if(makeRouteType){
-  if(makeRouteType === 's'){
-    console.log('makeRouteType',makeRouteType);
-  }else{
+if (makeRouteType) {
+  if (makeRouteType === 's') {
+    // console.log('makeRouteType',makeRouteType);
+  } else {
     console.error('Please provide singluar or plural type route. e.g. "s" - for "user" & "" - for "users"');
     process.exit(1);
   }
@@ -40,35 +41,32 @@ if(makeRouteType){
 // Convert to Sentence Case
 const toSentenceCase = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 function createPathKey(routePath, typeDirect = '') {
-    const segments = routePath.replace(/^\/+/, '').split('/');
-    let base = '';
+  const segments = routePath.replace(/^\/+/, '').split('/');
+  let base = '';
 
-    if (typeDirect === 's') {
-      base = segments[0];
-    } else {
-      base = pluralize.plural(segments[0]);
-    }
-    // Use pluralize to get the plural form of the first segment
-    // base = pluralize.plural(segments[0]); // <-- FIXED
-    
-    // Convert params (e.g., :id) to just ":id"
-    const extras = segments
-      .slice(1)
-      .map(seg => seg.startsWith(':') ? `:${seg.slice(1)}` : seg)
-      .join('/');
-  
-    return extras ? `/${base}/${extras}` : `/${base}`;
+  if (typeDirect === 's') {
+    base = segments[0];
+  } else {
+    base = pluralize.plural(segments[0]);
+  }
+  // Use pluralize to get the plural form of the first segment
+  // base = pluralize.plural(segments[0]); // <-- FIXED
+
+  // Convert params (e.g., :id) to just ":id"
+  const extras = segments
+    .slice(1)
+    .map(seg => seg.startsWith(':') ? `:${seg.slice(1)}` : seg)
+    .join('/');
+
+  return extras ? `/${base}/${extras}` : `/${base}`;
 }
-  
-// Define the path to paste
-const dirPath = __dirname+'/../';
-const routedestinationPath = path.join(dirPath, 'src', 'routes', `${routerName}Routes.js`);
+
 function updateBraceDepth(line, currentDepth) {
   const openCount = (line.match(/{/g) || []).length;
   const closeCount = (line.match(/}/g) || []).length;
-  console.log('line',line);
-  console.log('openCount',openCount);
-  console.log('closeCount',closeCount);
+  console.log('line', line);
+  console.log('openCount', openCount);
+  console.log('closeCount', closeCount);
   return currentDepth + openCount - closeCount;
 }
 function matchJsonKey(line, key) {
@@ -88,19 +86,19 @@ async function findRouteLineNumber(filePath, targetPath, targetMethod) {
   let braceDepth = 0;
   let targetPathCloseBraceLineNumber = 0;
   let targetPathMatchLine = null;
-  
+
   let insideTargetMethod = false;
   let insideTargetMethodBraceCount = false;
   let targetMethodCloseBraceLineNumber = 0;
   let targetMethodMatchLine = null;
   let depth = 0;
   let multipleLineComment = false;
-  
+
   // multiple line comments check
   for await (const line of rl) {
     lineNumber++;
     let trimmed = line.trim();
-    if(trimmed.includes('//')){
+    if (trimmed.includes('//')) {
       trimmed = trimmed.split('//')[0];
     }
     //check if line has commments
@@ -112,21 +110,21 @@ async function findRouteLineNumber(filePath, targetPath, targetMethod) {
     if (trimmed.includes('/*')) {
       multipleLineComment = true;
     }
-    
-    if(multipleLineComment === false){
+
+    if (multipleLineComment === false) {
       // console.log(trimmed);
       // match the line with target path
       // if (trimmed.startsWith(`${'"'+targetPath+'"'}:`) || trimmed.startsWith(`${"'"+targetPath+'"'}:`)) {
-      if(matchJsonKey(trimmed, targetPath)){
+      if (matchJsonKey(trimmed, targetPath)) {
         insideTargetPath = true;
         insideTargetPathBraceCount = true;
         targetPathMatchLine = lineNumber;
       }
 
-      if(insideTargetPath === true && insideTargetPathBraceCount === true){
+      if (insideTargetPath === true && insideTargetPathBraceCount === true) {
         depth = updateBraceDepth(trimmed, depth);
         console.log(depth);
-        if(depth === 0){
+        if (depth === 0) {
           insideTargetPathBraceCount = false;
           targetPathCloseBraceLineNumber = lineNumber;
         }
@@ -134,13 +132,13 @@ async function findRouteLineNumber(filePath, targetPath, targetMethod) {
         // console.log(targetMethod);
         // check method available in the route
         // if (trimmed.startsWith(`${'"'+targetMethod+'"'}:`) || trimmed.startsWith(`${"'"+targetMethod+'"'}:`) || trimmed.startsWith(`${'"'+(targetMethod).toLowerCase()+'"'}:`) || trimmed.startsWith(`${"'"+(targetMethod).toUpperCase()+'"'}:`) ) {
-        if(trimmed !== ''){
-          if(matchJsonKey(trimmed, targetMethod)){
+        if (trimmed !== '') {
+          if (matchJsonKey(trimmed, targetMethod)) {
             insideTargetMethod = true;
             insideTargetMethodBraceCount = true;
             targetMethodMatchLine = lineNumber;
-          }else {
-            if(depth === 1){
+          } else {
+            if (depth === 1) {
               targetMethodCloseBraceLineNumber = lineNumber;
             }
           }
@@ -153,28 +151,71 @@ async function findRouteLineNumber(filePath, targetPath, targetMethod) {
   }
 
   rl.close();
-  return { insideRoutesObject, insideTargetPath, targetPathMatchLine,targetPathCloseBraceLineNumber,targetMethodMatchLine,targetMethodCloseBraceLineNumber };
+  return { insideRoutesObject, insideTargetPath, targetPathMatchLine, targetPathCloseBraceLineNumber, insideTargetMethod, insideTargetMethodBraceCount, targetMethodMatchLine, targetMethodCloseBraceLineNumber };
 }
 
-
-// check if file exists
-if (fs.existsSync(routedestinationPath)) {
-  // file exists so find the line number of path like "/logins" user input login then added json in under that json 
-
-  console.log('File exists. Finding line number...');
+(async () => {
+  try {
+  // Define the path to paste
+  const dirPath = __dirname + '/../';
+  const routedestinationPath = path.join(dirPath, 'src', 'routes', `${routerName}Routes.js`);
   // convert route path login to "/logins" utiline pluraling pluralize
   const targetPath = createPathKey(routerPath, makeRouteType);
   const targetMethod = routerType.toLowerCase();
+  let jsonSourcePath = path.join(__dirname, 'baseStructure', 'routers', 'singleGetRouters.json');
+  if((targetMethod).toLowerCase() === 'post') {
+    jsonSourcePath = path.join(__dirname, 'baseStructure', 'routers', 'singlePostRouters.json');
+  }else if((targetMethod).toLowerCase() === 'put') {
+    jsonSourcePath = path.join(__dirname, 'baseStructure', 'routers', 'singlePutRouters.json');
+  }else if((targetMethod).toLowerCase() === 'delete') {
+    jsonSourcePath = path.join(__dirname, 'baseStructure', 'routers', 'singleDeleteRouters.json');
+  }
+   // Step 1: Read the JSON file
+   const jsonFile = await fs.promises.readFile(jsonSourcePath, 'utf8');
+   const fullJson = JSON.parse(jsonFile);
 
-  // Find the line number of the route
-  console.log("targetPath",targetPath);
-  console.log("targetMethod",targetMethod);
-  console.log("routedestinationPath",routedestinationPath);
-  (async () => {
+   // Step 2: Extract only the "get" part
+   const getJson = fullJson['base'];
+   if (!getJson) {
+     console.error('❌ base key not found in the JSON file.');
+     return;
+    }
+    // Step 3: Format the extracted "get" object
+    const formattedGetJson = JSON.stringify(getJson, null, 2)
+      .split('\n')
+      .map(line => '  ' + line); // optional indent
+    
+  // check if file exists
+  if (fs.existsSync(routedestinationPath)) {
+    // file exists so find the line number of path like "/logins" user input login then added json in under that json 
+
+    console.log('File exists. Finding line number...');
+
+    // Find the line number of the route
+    console.log("targetPath", targetPath);
+    console.log("targetMethod", targetMethod);
+    console.log("routedestinationPath", routedestinationPath);
     const lineNumber = await findRouteLineNumber(routedestinationPath, targetPath, targetMethod);
     console.log(lineNumber);
-    // console.log(lineNumber === -1 ? 'Route or method not found' : `Line number: ${lineNumber}`);
-  })();
-} else {
-    console.error(`❌ File not found: ${routedestinationPath}`);
+  } else {
+    console.log(`❌ File not found: ${routedestinationPath}`);
+    const routesourcePath = path.join(__dirname, 'baseStructure', 'routers', 'basicRoutes.js');
+    // Step 4: Read the target file
+    
+    const resultOfRoute = await createFile(routesourcePath, routedestinationPath, routerName);
+    console.log(`✅ File created: ${routedestinationPath}`);
+    // check if file exists
+    if (resultOfRoute) {
+      let targetContent = (await fs.promises.readFile(routedestinationPath, 'utf8')).split('\n');
+      // Step 5: Insert at the given line
+      targetContent.splice(2, 0, ...formattedGetJson);
+      // Step 6: Save the updated file
+      await fs.promises.writeFile(routedestinationPath, targetContent.join('\n'), 'utf8');
+      // file exists so find the line number of path like "/logins" user input login then added json in under that json
+      // console.log('File exists. Finding line number...', resultOfRoute);
+    }
+  }
+} catch (err) {
+  console.error('🚨 Error inside IIFE:', err);
 }
+})();

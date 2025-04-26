@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const pluralize = require('pluralize');
+const { createFile } = require('./file-create-and-update');
 
 // Get the router name passed as an argument
 const routerName = process.argv[2];
@@ -14,42 +14,24 @@ if (!routerName) {
 // Convert to Sentence Case
 const toSentenceCase = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
-function createFile(sourcePath, destinationPath) {
-  // Read the base router file
-  fs.readFile(sourcePath, 'utf8', (err, data) => {
-    if (err) {
-      console.error('Error reading source file:', err);
-      return;
-    }
 
-    // Replace all occurrences of "base" with routerName
-    
-    const prevfirstModifiedData = data.replace(/Pbase/g, pluralize.plural(routerName));
-    const firstModifiedData = prevfirstModifiedData.replace(/baseM/g, toSentenceCase(routerName));
-    const modifiedData = firstModifiedData.replace(/base/g, routerName);
-    // Write content to the new router file
-    fs.writeFile(destinationPath, modifiedData, 'utf8', (err) => {
-      if (err) {
-        console.error('Error writing destination file:', err);
-        return;
-      }
-      console.log(`file created: ${destinationPath}`);
-    });
-  });
-}
 // Define the path to paste
 const dirPath = __dirname+'/../';
 // for model creation 
 const modelsourcePath = path.join(__dirname, 'baseStructure', 'models', 'base.js');
 const modeldestinationPath = path.join(dirPath, 'src', 'models', `${toSentenceCase(routerName)}.js`);
-createFile(modelsourcePath, modeldestinationPath);
-
+(async () => {
+  const resultOfModel = await createFile(modelsourcePath, modeldestinationPath,routerName);
+})();
 // for controller creation 
 const controllersourcePath = path.join(__dirname, 'baseStructure', 'controllers', 'baseController.js');
 const controllerdestinationPath = path.join(dirPath, 'src', 'controllers', `${routerName}Controller.js`);
-createFile(controllersourcePath, controllerdestinationPath);
-
+(async () => {
+  const resultOfController = await createFile(controllersourcePath, controllerdestinationPath,routerName);
+})();
 // for router creation 
 const routesourcePath = path.join(__dirname, 'baseStructure', 'routers', 'baseRouters.js');
 const routedestinationPath = path.join(dirPath, 'src', 'routes', `${routerName}Routes.js`);
-createFile(routesourcePath, routedestinationPath);
+(async () => {
+  const resultOfRoute = await createFile(routesourcePath, routedestinationPath,routerName);
+})();
