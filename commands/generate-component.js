@@ -11,6 +11,11 @@ if (!routerName) {
   process.exit(1);
 }
 
+if(routerName === 'default'){
+  console.error('Please provide a router name other than default.');
+  process.exit(1);
+}
+
 // Convert to Sentence Case
 const toSentenceCase = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
