@@ -29,11 +29,17 @@ if (!routerName) {
   process.exit(1);
 }
 
+if(routerName === 'default') {
+  console.error('Please provide a router name.');
+  process.exit(1);
+}
+
+
 if (makeRouteType) {
   if (makeRouteType === 's') {
     // console.log('makeRouteType',makeRouteType);
   } else {
-    console.error('Please provide singluar or plural type route. e.g. "s" - for "user" & "" - for "users"');
+    console.error('Please provide valid systax for generate singluar or plural type route. e.g. "s" - for "user" & "" - for "users"');
     process.exit(1);
   }
 }
@@ -169,7 +175,12 @@ async function readGetWrapped(filePath,targetPath, targetMethod) {
   try {
   // Define the path to paste
   const dirPath = __dirname + '/../';
-  const routedestinationPath = path.join(dirPath, 'src', 'routes', `${routerName}Routes.js`);
+  let routedestinationPath = path.join(dirPath, 'src', 'routes', `${routerName}Routes.js`);
+  let finalRouteName = routerName;
+  if(makeRouteType === 's'){
+    routedestinationPath = path.join(dirPath, 'src', 'routes', `defaultRoutes.js`);
+    finalRouteName = 'default';
+  }
   // convert route path login to "/logins" utiline pluraling pluralize
   const targetPath = createPathKey(routerPath, makeRouteType);
   const targetMethod = routerType.toLowerCase();
@@ -182,15 +193,7 @@ async function readGetWrapped(filePath,targetPath, targetMethod) {
     jsonSourcePath = path.join(__dirname, 'baseStructure', 'routers', 'singleDeleteRouters.json');
   }
    // Step 1: Read the JSON file
-   const fullJson = await readGetWrapped(jsonSourcePath,targetPath, (targetMethod).toLowerCase());
-
-   console.log(fullJson);
-   
-    // Step 3: Format the extracted "get" object
-    const formattedGetJson = JSON.stringify({ [targetMethod]: fullJson[targetMethod] }, null, 2)
-          .split('\n')
-          .slice(1, -1) // REMOVE first '{' and last '}'
-          .map(line => '  ' + line); // optional indent
+   const fullJson = await readGetWrapped(jsonSourcePath,targetPath, (targetMethod).toLowerCase());   
 
   // check if file exists
   if (fs.existsSync(routedestinationPath)) {
@@ -209,15 +212,19 @@ async function readGetWrapped(filePath,targetPath, targetMethod) {
     const routesourcePath = path.join(__dirname, 'baseStructure', 'routers', 'basicRoutes.js');
     // Step 4: Read the target file
     
-    const resultOfRoute = await createFile(routesourcePath, routedestinationPath, routerName);
+    const resultOfRoute = await createFile(routesourcePath, routedestinationPath, finalRouteName);
     console.log(`✅ File created: ${routedestinationPath}`);
     // check if file exists
     if (resultOfRoute) {
+       // Step 3: Format the extracted "get" object
+      const formattedGetJson = JSON.stringify({ [targetPath]: fullJson[targetPath] }, null, 2)
+      .split('\n')
+      .slice(1, -1) // REMOVE first '{' and last '}'
+      .map(line => '  ' + line); // optional indent
       let targetContent = (await fs.promises.readFile(routedestinationPath, 'utf8')).split('\n');
       targetContent.splice(2, 0, ...formattedGetJson); // Insert after line 2
       await fs.promises.writeFile(routedestinationPath, targetContent.join('\n'), 'utf8');
       // file exists so find the line number of path like "/logins" user input login then added json in under that json
-      // console.log('File exists. Finding line number...', resultOfRoute);
     }
   }
 } catch (err) {
