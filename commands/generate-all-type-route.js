@@ -137,7 +137,11 @@ async function findRouteLineNumber(filePath, targetPath, targetMethod) {
   let depth = 0;
   let multipleLineComment = false;
   let lastTargetMethodLineHasComma = false;
-
+  const pattern = /^const\s+\w+\s*=\s*{/; // Your regex pattern
+  let targetPathSimilarMatchLineNumber = 0;
+  let targetPathSimilarMatchLineNumberCheck = false;
+  let targetPathSimilarMatchCloseBraceLineNumberCheck = false;
+  let targetPathSimilarMatchDepth = 0;
   // multiple line comments check
   for await (const line of rl) {
     lineNumber++;
@@ -156,6 +160,20 @@ async function findRouteLineNumber(filePath, targetPath, targetMethod) {
     }
 
     if (multipleLineComment === false) {
+      if (pattern.test(trimmed)) {
+        targetPathSimilarMatchLineNumberCheck = true;
+        targetPathSimilarMatchCloseBraceLineNumberCheck = true;
+       
+      }
+      if(targetPathSimilarMatchLineNumberCheck === true && targetPathSimilarMatchCloseBraceLineNumberCheck === true){
+        targetPathSimilarMatchDepth = updateBraceDepth(trimmed, targetPathSimilarMatchDepth);
+        if(targetPathSimilarMatchDepth === 1 && trimmed.includes('}')){
+          targetPathSimilarMatchLineNumber = lineNumber;
+        }
+        if(targetPathSimilarMatchDepth === 0){
+          targetPathSimilarMatchCloseBraceLineNumberCheck = false;
+        }
+      }
       // console.log(trimmed);
       // match the line with target path
       // if (trimmed.startsWith(`${'"'+targetPath+'"'}:`) || trimmed.startsWith(`${"'"+targetPath+'"'}:`)) {
@@ -206,7 +224,7 @@ async function findRouteLineNumber(filePath, targetPath, targetMethod) {
 
   rl.close();
   return { insideRoutesObject, insideTargetPath, targetPathMatchLine, targetPathCloseBraceLineNumber, insideTargetMethod, insideTargetMethodBraceCount, targetMethodMatchLine, targetMethodCloseBraceLineNumber ,lastTargetPathLineHasComma
-    ,lastTargetMethodLineHasComma};
+    ,lastTargetMethodLineHasComma,targetPathSimilarMatchLineNumber};
 }
 async function readGetWrapped(filePath,targetPath, targetMethod, onlyGet = false) {
   try {
@@ -277,7 +295,8 @@ async function readGetWrapped(filePath,targetPath, targetMethod, onlyGet = false
         await fs.promises.writeFile(routedestinationPath, targetContent.join('\n'), 'utf8');
       }
     }else{
-      console.log(lineNumber);
+      // console.log(lineNumber);
+      const resultLine = await updateAndFixLineInFile(routedestinationPath, lineNumber.targetPathSimilarMatchLineNumber);
       // Step 1: Read the JSON file
       const fullJson = await readGetWrapped(jsonSourcePath,targetPath, (targetMethod).toLowerCase());   
       // Step 2: Format the extracted "get" object
@@ -285,6 +304,13 @@ async function readGetWrapped(filePath,targetPath, targetMethod, onlyGet = false
       .split('\n')
       .slice(1, -1) // REMOVE first '{' and last '}'
       .map(line => '  ' + line); // optional indent
+      // Step 3: Write the formatted JSON back to the file
+      if(resultLine === true){
+        let targetContent = (await fs.promises.readFile(routedestinationPath, 'utf8')).split('\n');
+        targetContent.splice((lineNumber.targetPathSimilarMatchLineNumber), 0, ...formattedGetJson); // Insert after line 2
+        await fs.promises.writeFile(routedestinationPath, targetContent.join('\n'), 'utf8');
+      }
+
     }
   } else {
     console.log(`❌ File not found: ${routedestinationPath}`);
