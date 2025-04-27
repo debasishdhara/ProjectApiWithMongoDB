@@ -9,7 +9,7 @@ const fsPromises = require('fs').promises; // Notice .promises here!
 const routerType = process.argv[2];
 const routerPath = process.argv[3];
 const routerName = process.argv[4];
-const makeRouteType = process.argv[5];
+let makeRouteType = process.argv[5];
 
 // Validate the router type
 if (!routerType) {
@@ -34,6 +34,9 @@ if(routerName === 'default') {
   process.exit(1);
 }
 
+if(routerName === 's'){
+  makeRouteType = 's';
+}
 
 if (makeRouteType) {
   if (makeRouteType === 's') {
