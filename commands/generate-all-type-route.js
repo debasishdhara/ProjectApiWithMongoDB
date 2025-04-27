@@ -153,13 +153,14 @@ async function findRouteLineNumber(filePath, targetPath, targetMethod) {
   rl.close();
   return { insideRoutesObject, insideTargetPath, targetPathMatchLine, targetPathCloseBraceLineNumber, insideTargetMethod, insideTargetMethodBraceCount, targetMethodMatchLine, targetMethodCloseBraceLineNumber };
 }
-async function readGetWrapped(filePath, targetMethod) {
+async function readGetWrapped(filePath,targetPath, targetMethod) {
   try {
     const data = await fsPromises.readFile(filePath, 'utf8');  // Read the JSON file
     const jsonData = JSON.parse(data);                       // Parse JSON
     const getObject = { [targetMethod]: jsonData?.base?.[targetMethod] };           // Wrap 'get' inside an object again
-    console.log(JSON.stringify(getObject, null, 2));         // Pretty-print the wrapped 'get'
-    return getObject;
+    // console.log(JSON.stringify(getObject, null, 2));         // Pretty-print the wrapped 'get'
+    const targetObject = { [targetPath]: getObject };
+    return targetObject;
   } catch (error) {
     console.error('Error:', error);
   }
@@ -181,7 +182,7 @@ async function readGetWrapped(filePath, targetMethod) {
     jsonSourcePath = path.join(__dirname, 'baseStructure', 'routers', 'singleDeleteRouters.json');
   }
    // Step 1: Read the JSON file
-   const fullJson = await readGetWrapped(jsonSourcePath, (targetMethod).toLowerCase());
+   const fullJson = await readGetWrapped(jsonSourcePath,targetPath, (targetMethod).toLowerCase());
 
    console.log(fullJson);
    
