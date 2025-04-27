@@ -6,9 +6,6 @@ const toSentenceCase = (str) => {
 };
 
 async function createFile(sourcePath, destinationPath, routerName){
-    console.log('sourcePath',sourcePath);
-    console.log('destinationPath',destinationPath);
-    console.log('routerName',routerName);
   try {
     let data = await fs.readFile(sourcePath, 'utf8');
     
@@ -25,7 +22,6 @@ async function createFile(sourcePath, destinationPath, routerName){
     }
 
     await fs.writeFile(destinationPath, data, 'utf8');
-    console.log(`File created: ${destinationPath}`);
     return true;
   } catch (err) {
     console.error('Error in createFile:', err);

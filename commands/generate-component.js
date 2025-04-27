@@ -22,21 +22,40 @@ const toSentenceCase = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
 // Define the path to paste
 const dirPath = __dirname+'/../';
+
 // for model creation 
 const modelsourcePath = path.join(__dirname, 'baseStructure', 'models', 'base.js');
 const modeldestinationPath = path.join(dirPath, 'src', 'models', `${toSentenceCase(routerName)}.js`);
 (async () => {
-  const resultOfModel = await createFile(modelsourcePath, modeldestinationPath,routerName);
+  if (fs.existsSync(modeldestinationPath)) {
+    console.log(`⚠️ Model already exists at ${modeldestinationPath}. Skipping creation.`);
+  } else {
+    const resultOfModel = await createFile(modelsourcePath, modeldestinationPath, routerName);
+    console.log(`✅ Model created at ${modeldestinationPath}`);
+  }
 })();
+
 // for controller creation 
 const controllersourcePath = path.join(__dirname, 'baseStructure', 'controllers', 'baseController.js');
 const controllerdestinationPath = path.join(dirPath, 'src', 'controllers', `${routerName}Controller.js`);
+
 (async () => {
-  const resultOfController = await createFile(controllersourcePath, controllerdestinationPath,routerName);
+  if (fs.existsSync(controllerdestinationPath)) {
+    console.log(`⚠️ Controller already exists at ${controllerdestinationPath}. Skipping creation.`);
+  } else {
+    const resultOfController = await createFile(controllersourcePath, controllerdestinationPath, routerName);
+    console.log(`✅ Controller created at ${controllerdestinationPath}`);
+  }
 })();
+
 // for router creation 
 const routesourcePath = path.join(__dirname, 'baseStructure', 'routers', 'baseRouters.js');
 const routedestinationPath = path.join(dirPath, 'src', 'routes', `${routerName}Routes.js`);
 (async () => {
-  const resultOfRoute = await createFile(routesourcePath, routedestinationPath,routerName);
+  if (fs.existsSync(routedestinationPath)) {
+    console.log(`⚠️ Router already exists at ${routedestinationPath}. Skipping creation.`);
+  } else {
+    const resultOfRoute = await createFile(routesourcePath, routedestinationPath, routerName);
+    console.log(`✅ Router created at ${routedestinationPath}`);
+  }
 })();
