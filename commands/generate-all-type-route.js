@@ -4,7 +4,7 @@ const pluralize = require('pluralize');
 require('module-alias/register');
 const readline = require('readline'); // ← ✅ Missing import
 const { createFile } = require('./file-create-and-update');
-
+const fsPromises = require('fs').promises; // Notice .promises here!
 // Get the router name passed as an argument
 const routerType = process.argv[2];
 const routerPath = process.argv[3];
@@ -153,7 +153,17 @@ async function findRouteLineNumber(filePath, targetPath, targetMethod) {
   rl.close();
   return { insideRoutesObject, insideTargetPath, targetPathMatchLine, targetPathCloseBraceLineNumber, insideTargetMethod, insideTargetMethodBraceCount, targetMethodMatchLine, targetMethodCloseBraceLineNumber };
 }
-
+async function readGetWrapped(filePath, targetMethod) {
+  try {
+    const data = await fsPromises.readFile(filePath, 'utf8');  // Read the JSON file
+    const jsonData = JSON.parse(data);                       // Parse JSON
+    const getObject = { [targetMethod]: jsonData?.base?.[targetMethod] };           // Wrap 'get' inside an object again
+    console.log(JSON.stringify(getObject, null, 2));         // Pretty-print the wrapped 'get'
+    return getObject;
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
 (async () => {
   try {
   // Define the path to paste
@@ -171,20 +181,16 @@ async function findRouteLineNumber(filePath, targetPath, targetMethod) {
     jsonSourcePath = path.join(__dirname, 'baseStructure', 'routers', 'singleDeleteRouters.json');
   }
    // Step 1: Read the JSON file
-   const jsonFile = await fs.promises.readFile(jsonSourcePath, 'utf8');
-   const fullJson = JSON.parse(jsonFile);
+   const fullJson = await readGetWrapped(jsonSourcePath, (targetMethod).toLowerCase());
 
-   // Step 2: Extract only the "get" part
-   const getJson = fullJson['base'];
-   if (!getJson) {
-     console.error('❌ base key not found in the JSON file.');
-     return;
-    }
+   console.log(fullJson);
+   
     // Step 3: Format the extracted "get" object
-    const formattedGetJson = JSON.stringify(getJson, null, 2)
-      .split('\n')
-      .map(line => '  ' + line); // optional indent
-    
+    const formattedGetJson = JSON.stringify({ [targetMethod]: fullJson[targetMethod] }, null, 2)
+          .split('\n')
+          .slice(1, -1) // REMOVE first '{' and last '}'
+          .map(line => '  ' + line); // optional indent
+
   // check if file exists
   if (fs.existsSync(routedestinationPath)) {
     // file exists so find the line number of path like "/logins" user input login then added json in under that json 
@@ -207,9 +213,7 @@ async function findRouteLineNumber(filePath, targetPath, targetMethod) {
     // check if file exists
     if (resultOfRoute) {
       let targetContent = (await fs.promises.readFile(routedestinationPath, 'utf8')).split('\n');
-      // Step 5: Insert at the given line
-      targetContent.splice(2, 0, ...formattedGetJson);
-      // Step 6: Save the updated file
+      targetContent.splice(2, 0, ...formattedGetJson); // Insert after line 2
       await fs.promises.writeFile(routedestinationPath, targetContent.join('\n'), 'utf8');
       // file exists so find the line number of path like "/logins" user input login then added json in under that json
       // console.log('File exists. Finding line number...', resultOfRoute);
