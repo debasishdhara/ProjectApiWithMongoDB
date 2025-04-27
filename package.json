@@ -9,6 +9,7 @@
     "make:component": "node commands/generate-component.js",
     "make:route": "node commands/generate-all-type-route.js",
     "make:model": "node commands/generate-model.js",
+    "make:controller": "node commands/generate-controller.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
